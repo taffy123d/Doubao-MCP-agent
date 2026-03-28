@@ -4,16 +4,13 @@
 import asyncio
 import json
 import os
+import sqlite3
 from collections import defaultdict
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, send_from_directory, Response, g
 from flask_cors import CORS
 import httpx
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-
-# 对话历史存储
-chat_histories = defaultdict(list)
-MAX_HISTORY = 20
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -34,6 +31,148 @@ MCP_SERVER = StdioServerParameters(
 
 # 缓存 MCP 工具列表
 _cached_tools = None
+
+# 数据库路径
+DB_PATH = os.path.join(ROOT_DIR, "chat_history.db")
+MAX_HISTORY = 20
+
+
+# ====================== MCP 工具管理 ======================
+async def get_mcp_tools():
+    """获取 MCP 工具列表（缓存）"""
+    global _cached_tools
+    if _cached_tools is not None:
+        return _cached_tools
+    
+    async with stdio_client(MCP_SERVER) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+            _cached_tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t.name,
+                        "description": t.description,
+                        "parameters": t.inputSchema
+                    }
+                }
+                for t in tools_result.tools
+            ]
+            return _cached_tools
+
+
+async def run_mcp_tool(tool_name: str, arguments: dict, max_retries: int = 2):
+    """运行 MCP 工具（带重试和 fallback）"""
+    for attempt in range(max_retries):
+        try:
+            async with stdio_client(MCP_SERVER) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(name=tool_name, arguments=arguments)
+                    return result.content[0].text
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"⚠️ 工具调用失败，重试 {attempt + 1}/{max_retries}: {str(e)}")
+                await asyncio.sleep(0.5)
+                continue
+            else:
+                # 最后一次尝试也失败，返回 fallback 提示
+                error_msg = f"工具 {tool_name} 调用失败：{str(e)}"
+                print(f"⚠️ {error_msg}")
+                return f"[工具调用失败] {error_msg}，请直接回答问题"
+
+
+# ====================== SQLite 数据库 ======================
+def get_db():
+    """获取数据库连接"""
+    if 'db' not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+
+def init_db():
+    """初始化数据库表"""
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_session ON messages(session_id)")
+        db.commit()
+
+
+def get_history(session_id: str, limit: int = MAX_HISTORY) -> list:
+    """获取对话历史"""
+    db = get_db()
+    rows = db.execute("""
+        SELECT role, content FROM messages
+        WHERE session_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+    """, (session_id, limit)).fetchall()
+    return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
+
+
+def save_message(session_id: str, role: str, content: str):
+    """保存消息到数据库"""
+    db = get_db()
+    db.execute("""
+        INSERT INTO messages (session_id, role, content)
+        VALUES (?, ?, ?)
+    """, (session_id, role, content))
+    db.commit()
+
+
+def trim_history(session_id: str, limit: int = MAX_HISTORY):
+    """清理超过限制的历史记录"""
+    db = get_db()
+    db.execute("""
+        DELETE FROM messages WHERE id IN (
+            SELECT id FROM messages
+            WHERE session_id = ?
+            ORDER BY id DESC
+            LIMIT -1 OFFSET ?
+        )
+    """, (session_id, limit))
+    db.commit()
+
+
+def clear_history_db(session_id: str):
+    """清空会话历史"""
+    db = get_db()
+    db.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    db.commit()
+
+
+# ====================== 请求关闭时清理 ======================
+@app.teardown_appcontext
+def close_db(error):
+    """关闭数据库连接"""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+# ====================== 辅助函数 ======================
+def run_in_thread(func, *args, **kwargs):
+    """在线程中运行异步函数"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(func(*args, **kwargs))
+    finally:
+        loop.close()
+
+
+# ====================== 路由处理 ======================
+
 
 
 async def get_mcp_tools():
@@ -135,7 +274,7 @@ def get_tools_in_thread():
 def get_tools():
     """获取可用工具列表"""
     try:
-        tools = get_tools_in_thread()
+        tools = run_in_thread(get_mcp_tools)
         return jsonify({"tools": tools})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -238,7 +377,7 @@ async def _chat_async(api_key, endpoint_id, base_url, user_message, history):
             tool_name = tool_call["function"]["name"]
             tool_args = json.loads(tool_call["function"]["arguments"])
             
-            # 调用 MCP 工具
+            # 调用 MCP 工具（带 fallback）
             tool_result = await run_mcp_tool(tool_name, tool_args)
             
             # 构建第二次调用的消息
@@ -249,7 +388,7 @@ async def _chat_async(api_key, endpoint_id, base_url, user_message, history):
                 "content": tool_result
             })
             
-            # 第二次调用豆包 API
+            # 第二次调用豆包 API（让模型处理工具调用失败的情况）
             final_resp = await http_client.post(
                 url=base_url,
                 headers=headers,
@@ -289,15 +428,20 @@ def chat():
     if not user_message:
         return jsonify({"error": "消息内容不能为空"}), 400
     
-    # 获取会话历史
-    messages_history = chat_histories.get(session_id, [])
+    # 获取会话历史（从数据库）
+    messages_history = get_history(session_id)
     
     try:
         result = chat_in_thread(api_key, endpoint_id, base_url, user_message, messages_history)
         
-        # 更新历史
+        # 保存历史到数据库
         if "messages" in result:
-            chat_histories[session_id] = result["messages"][-MAX_HISTORY:]
+            messages = result["messages"]
+            # 保存最后 MAX_HISTORY 条
+            for msg in messages[-MAX_HISTORY:]:
+                save_message(session_id, msg["role"], msg["content"])
+            # 清理旧数据
+            trim_history(session_id)
         
         return jsonify({"response": result["response"], "session_id": session_id})
     except Exception as e:
@@ -309,8 +453,7 @@ def clear_history():
     data = request.json
     session_id = data.get('session_id', 'default')
     
-    if session_id in chat_histories:
-        del chat_histories[session_id]
+    clear_history_db(session_id)
     
     return jsonify({"success": True, "message": "对话历史已清除"})
 
@@ -406,7 +549,7 @@ async def _chat_stream_async(api_key, endpoint_id, base_url, user_message, histo
                 tool_name = tool_call["function"]["name"]
                 tool_args = json.loads(tool_call["function"]["arguments"])
                 
-                # 调用 MCP 工具
+                # 调用 MCP 工具（带 fallback）
                 tool_result = await run_mcp_tool(tool_name, tool_args)
                 
                 # 构建第二次调用的消息
@@ -477,12 +620,38 @@ def chat_stream():
     if not user_message:
         return jsonify({"error": "消息内容不能为空"}), 400
     
-    # 获取会话历史
-    messages_history = chat_histories.get(session_id, [])
+    # 获取会话历史（从数据库）
+    messages_history = get_history(session_id)
     
     def generate():
+        # 收集完整消息用于保存历史
+        full_user_message = {"role": "user", "content": user_message}
+        full_assistant_messages = []
+        
         for chunk in stream_in_thread(api_key, endpoint_id, base_url, user_message, messages_history):
             yield chunk
+            
+            # 尝试解析 chunk 并收集消息
+            if chunk.startswith("data: ") and chunk.strip() != "data: [DONE]\n\n":
+                try:
+                    data_str = chunk[6:].strip()
+                    if data_str.startswith("{") and data_str.endswith("}\n\n"):
+                        data_obj = json.loads(data_str[:-2])
+                        if "response" in data_obj:
+                            response = data_obj["response"]
+                            if not response.startswith("【"):
+                                if not full_assistant_messages:
+                                    full_assistant_messages.append({"role": "assistant", "content": response})
+                                else:
+                                    full_assistant_messages[0]["content"] += response
+                except:
+                    pass
+        
+        # 保存历史到数据库
+        save_message(session_id, full_user_message["role"], full_user_message["content"])
+        for msg in full_assistant_messages:
+            save_message(session_id, msg["role"], msg["content"])
+        trim_history(session_id)
     
     return Response(generate(), mimetype='text/event-stream')
 
@@ -516,5 +685,9 @@ if __name__ == '__main__':
     if not os.path.exists(mcp_server_path):
         print(f"\n警告: 未找到 MCP 服务文件: {mcp_server_path}")
         print("请先创建 mcp_server.py 文件\n")
+    
+    # 初始化数据库
+    init_db()
+    print("✅ 数据库已初始化")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
