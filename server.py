@@ -151,6 +151,31 @@ def clear_history_db(session_id: str):
     db.commit()
 
 
+def get_all_sessions():
+    """获取所有会话列表"""
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            session_id,
+            MIN(timestamp) as created_at,
+            MAX(timestamp) as last_active,
+            COUNT(*) as message_count
+        FROM messages
+        GROUP BY session_id
+        ORDER BY MAX(timestamp) DESC
+    """).fetchall()
+    return [
+        {
+            "session_id": row["session_id"],
+            "created_at": row["created_at"],
+            "last_active": row["last_active"],
+            "message_count": row["message_count"]
+        }
+        for row in rows
+    ]
+
+
+
 # ====================== 请求关闭时清理 ======================
 @app.teardown_appcontext
 def close_db(error):
@@ -175,37 +200,6 @@ def run_in_thread(func, *args, **kwargs):
 
 
 
-async def get_mcp_tools():
-    """获取 MCP 工具列表"""
-    global _cached_tools
-    if _cached_tools is not None:
-        return _cached_tools
-    
-    async with stdio_client(MCP_SERVER) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            tools_result = await session.list_tools()
-            _cached_tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": t.name,
-                        "description": t.description,
-                        "parameters": t.inputSchema
-                    }
-                }
-                for t in tools_result.tools
-            ]
-            return _cached_tools
-
-
-async def run_mcp_tool(tool_name: str, arguments: dict):
-    """运行 MCP 工具"""
-    async with stdio_client(MCP_SERVER) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(name=tool_name, arguments=arguments)
-            return result.content[0].text
 
 
 @app.route('/api/health', methods=['GET'])
@@ -327,33 +321,40 @@ def test_connection():
         return jsonify({"connected": False, "error": str(e)})
 
 
-def chat_in_thread(api_key, endpoint_id, base_url, message, history):
+def chat_in_thread(api_key, endpoint_id, base_url, message, history, tools=None):
     """在线程中执行异步聊天函数"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(
-            _chat_async(api_key, endpoint_id, base_url, message, history)
+            _chat_async(api_key, endpoint_id, base_url, message, history, tools)
         )
     finally:
         loop.close()
 
-async def _chat_async(api_key, endpoint_id, base_url, user_message, history):
+async def _chat_async(api_key, endpoint_id, base_url, user_message, history, tools=None):
     """异步聊天函数"""
-    # 获取 MCP 工具
-    tools = await get_mcp_tools()
-    
+    # 如果前端没有传入工具列表，则获取所有 MCP 工具
+    if tools is None:
+        tools = await get_mcp_tools()
+    else:
+        print(f"DEBUG: 使用前端传入的工具，数量={len(tools)}")
+
+    # 过滤历史消息：只保留 user 和 assistant 消息，去除 tool 消息
+    messages = [msg for msg in history if msg["role"] in ["user", "assistant"]]
+    messages.append({"role": "user", "content": user_message})
+
     async with httpx.AsyncClient(timeout=60) as http_client:
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
         
-        # 使用历史消息
-        messages = history.copy()
-        messages.append({"role": "user", "content": user_message})
-        
         # 第一次调用豆包 API
+        print(f"DEBUG: tools length = {len(tools)}")
+        for i, t in enumerate(tools):
+            print(f"DEBUG: Tool {i}: name={t['function']['name']}, desc_len={len(t['function']['description'])}")
+        
         resp = await http_client.post(
             url=base_url,
             headers=headers,
@@ -365,11 +366,15 @@ async def _chat_async(api_key, endpoint_id, base_url, user_message, history):
             }
         )
         
+        print(f"DEBUG: 豆包API状态码 = {resp.status_code}")
         if resp.status_code != 200:
+            print(f"DEBUG: 豆包API响应内容 = {resp.text}")
             return {"response": f"API 调用失败: {resp.status_code}", "messages": messages}
         
         result = resp.json()
+        print(f"DEBUG: 豆包API响应JSON = {json.dumps(result, ensure_ascii=False, indent=2)[:500]}")
         msg = result["choices"][0]["message"]
+        reasoning_content = msg.get("reasoning_content", "")  # 获取思维链内容
         
         # 检查是否需要调用工具
         if "tool_calls" in msg:
@@ -404,13 +409,26 @@ async def _chat_async(api_key, endpoint_id, base_url, user_message, history):
                 final_msg = final_result["choices"][0]["message"]
                 messages.append(final_msg)
                 response_content = final_msg.get("content") or tool_result
-                return {"response": f"【调用了工具：{tool_name}】\n\n{response_content}", "messages": messages}
+                final_reasoning = final_msg.get("reasoning_content", "")
+                return {
+                    "response": f"【调用了工具：{tool_name}】\n\n{response_content}",
+                    "reasoning": reasoning_content + ("\n\n" + final_reasoning if final_reasoning else ""),
+                    "messages": messages
+                }
             else:
                 messages.append({"role": "assistant", "content": tool_result})
-                return {"response": f"【调用了工具：{tool_name}】\n\n{tool_result}", "messages": messages}
+                return {
+                    "response": f"【调用了工具：{tool_name}】\n\n{tool_result}",
+                    "reasoning": reasoning_content,
+                    "messages": messages
+                }
         
         messages.append(msg)
-        return {"response": msg.get("content", "无响应内容"), "messages": messages}
+        return {
+            "response": msg.get("content", "无响应内容"),
+            "reasoning": reasoning_content,
+            "messages": messages
+        }
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -421,19 +439,20 @@ def chat():
     base_url = data.get('base_url', '')
     user_message = data.get('message', '')
     session_id = data.get('session_id', 'default')
-    
+    tools = data.get('tools')  # 前端传入的已启用工具列表
+
     if not api_key or not endpoint_id:
         return jsonify({"error": "缺少 API Key 或 Endpoint ID"}), 400
-    
+
     if not user_message:
         return jsonify({"error": "消息内容不能为空"}), 400
-    
+
     # 获取会话历史（从数据库）
     messages_history = get_history(session_id)
-    
+
     try:
-        result = chat_in_thread(api_key, endpoint_id, base_url, user_message, messages_history)
-        
+        result = chat_in_thread(api_key, endpoint_id, base_url, user_message, messages_history, tools)
+
         # 保存历史到数据库
         if "messages" in result:
             messages = result["messages"]
@@ -442,8 +461,12 @@ def chat():
                 save_message(session_id, msg["role"], msg["content"])
             # 清理旧数据
             trim_history(session_id)
-        
-        return jsonify({"response": result["response"], "session_id": session_id})
+
+        return jsonify({
+            "response": result["response"],
+            "reasoning": result.get("reasoning", ""),
+            "session_id": session_id
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -452,10 +475,42 @@ def clear_history():
     """清除对话历史"""
     data = request.json
     session_id = data.get('session_id', 'default')
-    
+
     clear_history_db(session_id)
-    
+
     return jsonify({"success": True, "message": "对话历史已清除"})
+
+
+@app.route('/api/sessions', methods=['GET'])
+def list_sessions():
+    """获取所有会话列表"""
+    try:
+        sessions = get_all_sessions()
+        return jsonify({"sessions": sessions})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/sessions/<session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    """删除会话"""
+    try:
+        clear_history_db(session_id)
+        return jsonify({"success": True, "message": "会话已删除"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/sessions/<session_id>/history', methods=['GET'])
+def get_session_history(session_id):
+    """获取会话历史"""
+    try:
+        history = get_history(session_id, limit=100)  # 获取最近100条
+        return jsonify({"history": history})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 async def _stream_generator(api_key, endpoint_id, base_url, message, history):

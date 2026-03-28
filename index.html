@@ -308,6 +308,107 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
+        /* Markdown 样式 */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4,
+        .message-content h5,
+        .message-content h6 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .message-content h1 { font-size: 1.5rem; }
+        .message-content h2 { font-size: 1.3rem; }
+        .message-content h3 { font-size: 1.15rem; }
+
+        .message-content p {
+            margin: 0.5rem 0;
+            line-height: 1.7;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .message-content li {
+            margin: 0.25rem 0;
+            line-height: 1.6;
+        }
+
+        .message-content code {
+            background: #f7fafc;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e53e3e;
+        }
+
+        .message-content pre {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+
+        .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: #f7fafc;
+            font-size: 0.9em;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            margin: 0.75rem 0;
+            padding-left: 1rem;
+            color: #718096;
+            font-style: italic;
+        }
+
+        .message-content a {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        .message-content strong {
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.75rem 0;
+        }
+
+        .message-content th,
+        .message-content td {
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .message-content th {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+
+        .message-content hr {
+            border: none;
+            border-top: 2px solid #e2e8f0;
+            margin: 1rem 0;
+        }
+
+
         /* 输入区域 */
         .input-container {
             padding: 1rem 2rem 2rem;
@@ -435,6 +536,238 @@
             background: #a1a1a1;
         }
 
+        /* 技能列表样式 */
+        .skills-list {
+            padding: 0.5rem;
+        }
+
+        .skill-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .skill-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .skill-info {
+            flex: 1;
+        }
+
+        .skill-name {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 14px;
+            margin-bottom: 0.25rem;
+        }
+
+        .skill-desc {
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .skill-toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #cbd5e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .skill-toggle.active {
+            background: #48bb78;
+        }
+
+        .skill-toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .skill-toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        .loading {
+            text-align: center;
+            color: #718096;
+            padding: 1rem;
+        }
+
+        /* 会话列表样式 */
+        .sessions-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .session-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .session-item.active {
+            border-color: #667eea;
+            background: #e8f0fe;
+        }
+
+        .session-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .session-id {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 13px;
+            margin-bottom: 0.25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .session-meta {
+            font-size: 11px;
+            color: #718096;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .session-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .session-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .session-btn.delete:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .new-session-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .new-session-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+
+        /* 思维链样式 */
+        .reasoning-container {
+            margin-bottom: 0.75rem;
+        }
+
+        .reasoning-toggle {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 13px;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .reasoning-toggle:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .reasoning-content {
+            background: #faf5ff;
+            border-left: 3px solid #9f7aea;
+            padding: 0.75rem 1rem;
+            margin-top: 0.5rem;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #553c9a;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .reasoning-content.expanded {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+
         /* 响应式 */
         @media (max-width: 768px) {
             .sidebar {
@@ -475,24 +808,24 @@
                         <span class="status-label">连接:</span>
                         <span class="status-value" id="connect-status">❌ 未连接</span>
                     </div>
-                    
+
                     <div class="divider"></div>
-                    
+
                     <div class="form-group">
                         <label>API Key</label>
                         <input type="password" id="api-key" placeholder="输入API密钥" value="">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Endpoint ID</label>
                         <input type="text" id="endpoint-id" placeholder="输入终端ID" value="">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Base URL</label>
                         <input type="text" id="base-url" placeholder="API地址" value="https://ark.cn-beijing.volces.com/api/v3/chat/completions">
                     </div>
-                    
+
                     <div class="btn-row">
                         <button class="btn" onclick="saveConfig()">
                             💾 保存
@@ -503,7 +836,35 @@
                     </div>
                 </div>
             </div>
+
+            <div class="config-section">
+                <div class="config-header" onclick="toggleSkills()">
+                    <span>🔧 技能管理</span>
+                    <span id="skills-arrow">▼</span>
+                </div>
+                <div class="config-content" id="skills-content">
+                    <div id="skills-list" class="skills-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-header" onclick="toggleSessions()">
+                    <span>💬 对话管理</span>
+                    <span id="sessions-arrow">▼</span>
+                </div>
+                <div class="config-content" id="sessions-content">
+                    <button class="new-session-btn" onclick="createNewSession()">
+                        ➕ 新建对话
+                    </button>
+                    <div id="sessions-list" class="sessions-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
         </aside>
+
 
         <!-- 主内容区 -->
         <main class="main">
@@ -532,6 +893,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         // 配置状态
         let config = {
@@ -543,6 +905,9 @@
         let isConnected = false;
         let mcpTools = null;
         let isProcessing = false;
+        let enabledSkills = new Set();  // 存储已启用的技能名称
+        let currentSessionId = 'default';  // 当前会话ID
+        let sessions = [];  // 会话列表
 
         // 初始化
         async function init() {
@@ -558,14 +923,17 @@
             } catch (error) {
                 console.error('获取配置失败:', error);
             }
-            
+
             // 填充表单
             document.getElementById('api-key').value = config.apiKey;
             document.getElementById('endpoint-id').value = config.endpointId;
             document.getElementById('base-url').value = config.baseUrl;
-            
+
             updateConfigStatus();
-            
+
+            // 加载default会话的历史
+            await loadSessionHistory(currentSessionId);
+
             if (config.apiKey && config.endpointId) {
                 testConnection();
             }
@@ -578,6 +946,144 @@
             content.classList.toggle('active');
             arrow.textContent = content.classList.contains('active') ? '▼' : '▶';
         }
+
+        // 切换技能面板
+        function toggleSkills() {
+            const content = document.getElementById('skills-content');
+            const arrow = document.getElementById('skills-arrow');
+            content.classList.toggle('active');
+            arrow.textContent = content.classList.contains('active') ? '▼' : '▶';
+
+            // 首次展开时加载技能列表
+            if (content.classList.contains('active') && document.getElementById('skills-list').querySelector('.loading')) {
+                loadSkillsList();
+            }
+        }
+
+        // 切换会话面板
+        function toggleSessions() {
+            const content = document.getElementById('sessions-content');
+            const arrow = document.getElementById('sessions-arrow');
+            content.classList.toggle('active');
+            arrow.textContent = content.classList.contains('active') ? '▼' : '▶';
+
+            // 首次展开时加载会话列表
+            if (content.classList.contains('active') && document.getElementById('sessions-list').querySelector('.loading')) {
+                loadSessionsList();
+            }
+        }
+
+        // 加载会话列表
+        async function loadSessionsList() {
+            const listContainer = document.getElementById('sessions-list');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/sessions`);
+                const data = await response.json();
+                sessions = data.sessions || [];
+
+                // 渲染会话列表
+                listContainer.innerHTML = sessions.map(session => `
+                    <div class="session-item ${session.session_id === currentSessionId ? 'active' : ''}"
+                         onclick="switchSession('${session.session_id}')">
+                        <div class="session-info">
+                            <div class="session-id">${session.session_id}</div>
+                            <div class="session-meta">${session.message_count} 条消息</div>
+                        </div>
+                        <div class="session-actions">
+                            <button class="session-btn delete"
+                                    onclick="event.stopPropagation(); deleteSession('${session.session_id}')"
+                                    title="删除对话">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('') || '<div class="loading">暂无对话</div>';
+
+            } catch (error) {
+                console.error('加载会话列表失败:', error);
+                listContainer.innerHTML = '<div class="loading">加载失败</div>';
+            }
+        }
+
+        // 新建会话
+        function createNewSession() {
+            const newSessionId = 'session_' + Date.now();
+            currentSessionId = newSessionId;
+
+            // 清空聊天界面
+            document.getElementById('chat-container').innerHTML = '';
+
+            // 刷新会话列表
+            loadSessionsList();
+
+            showToast('新对话已创建', 'success');
+        }
+
+        // 切换会话
+        async function switchSession(sessionId) {
+            currentSessionId = sessionId;
+
+            // 清空聊天界面
+            document.getElementById('chat-container').innerHTML = '';
+
+            // 加载会话历史
+            await loadSessionHistory(sessionId);
+
+            // 刷新会话列表
+            loadSessionsList();
+
+            showToast('已切换到对话: ' + sessionId, 'success');
+        }
+
+        // 加载会话历史
+        async function loadSessionHistory(sessionId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/history`);
+                const data = await response.json();
+                const history = data.history || [];
+
+                // 渲染历史消息
+                history.forEach(msg => {
+                    addMessage(msg.role, msg.content);
+                });
+            } catch (error) {
+                console.error('加载历史失败:', error);
+            }
+        }
+
+
+        // 删除会话
+        async function deleteSession(sessionId) {
+            if (!confirm('确定要删除这个对话吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // 如果删除的是当前会话,切换到默认会话
+                    if (sessionId === currentSessionId) {
+                        currentSessionId = 'default';
+                        document.getElementById('chat-container').innerHTML = '';
+                    }
+
+                    // 刷新会话列表
+                    loadSessionsList();
+
+                    showToast('对话已删除', 'success');
+                } else {
+                    throw new Error('删除失败');
+                }
+            } catch (error) {
+                console.error('删除会话失败:', error);
+                showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+
 
         // 更新配置状态显示
         function updateConfigStatus() {
@@ -693,6 +1199,66 @@
             }
         }
 
+        // 加载技能列表
+        async function loadSkillsList() {
+            const listContainer = document.getElementById('skills-list');
+
+            try {
+                // 从后端获取技能定义
+                const response = await fetch(`${API_BASE_URL}/api/tools`);
+                const data = await response.json();
+                const tools = data.tools || [];
+
+                // 提取技能信息
+                const skills = tools.map(tool => ({
+                    name: tool.function.name,
+                    description: tool.function.description,
+                    enabled: enabledSkills.has(tool.function.name)
+                }));
+
+                // 初始化时默认启用所有技能
+                if (enabledSkills.size === 0) {
+                    skills.forEach(skill => enabledSkills.add(skill.name));
+                    // 更新enabled状态
+                    skills.forEach(skill => skill.enabled = true);
+                }
+
+                // 渲染技能列表
+                listContainer.innerHTML = skills.map(skill => `
+                    <div class="skill-item">
+                        <div class="skill-info">
+                            <div class="skill-name">${skill.name}</div>
+                            <div class="skill-desc">${skill.description}</div>
+                        </div>
+                        <div class="skill-toggle ${skill.enabled ? 'active' : ''}"
+                             onclick="toggleSkill('${skill.name}', this)">
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('加载技能列表失败:', error);
+                listContainer.innerHTML = '<div class="loading">加载失败</div>';
+            }
+        }
+
+        // 切换技能开关
+        function toggleSkill(skillName, toggleElement) {
+            if (enabledSkills.has(skillName)) {
+                enabledSkills.delete(skillName);
+                toggleElement.classList.remove('active');
+            } else {
+                enabledSkills.add(skillName);
+                toggleElement.classList.add('active');
+            }
+        }
+
+        // 过滤已启用的技能
+        function getEnabledTools() {
+            if (!mcpTools) return [];
+            return mcpTools.filter(tool => enabledSkills.has(tool.function.name));
+        }
+
         // 发送消息
         async function sendMessage() {
             if (isProcessing) return;
@@ -717,9 +1283,12 @@
             
             try {
                 // 这里调用后端 API
-                const response = await getAIResponse(message);
+                const data = await getAIResponse(message, currentSessionId);
                 removeTypingIndicator(typingId);
-                addMessage('assistant', response);
+                addMessage('assistant', data.response, data.reasoning || '');
+
+                // 刷新会话列表
+                loadSessionsList();
             } catch (error) {
                 removeTypingIndicator(typingId);
                 addMessage('assistant', '处理失败: ' + error.message);
@@ -730,7 +1299,9 @@
         }
 
         // 获取 AI 响应
-        async function getAIResponse(userInput) {
+        async function getAIResponse(userInput, sessionId) {
+            const enabledTools = getEnabledTools();
+
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
                 headers: {
@@ -740,38 +1311,85 @@
                     api_key: config.apiKey,
                     endpoint_id: config.endpointId,
                     base_url: config.baseUrl,
-                    message: userInput
+                    message: userInput,
+                    session_id: sessionId,  // 发送当前会话ID
+                    tools: enabledTools  // 发送已启用的工具
                 })
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || '请求失败');
             }
-            
+
             const data = await response.json();
-            return data.response;
+            return data;  // 返回完整数据,包含response和reasoning
         }
 
         // 添加消息
-        function addMessage(role, content) {
+        function addMessage(role, content, reasoning = '') {
             const container = document.getElementById('chat-container');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-            
+
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
             avatar.textContent = role === 'user' ? '👤' : '🤖';
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.textContent = content;
-            
+
+            // 如果是助手消息，渲染 Markdown；用户消息显示纯文本
+            if (role === 'assistant') {
+                let html = '';
+
+                // 如果有思维链，添加可折叠的思维链区域
+                if (reasoning) {
+                    const reasoningId = 'reasoning-' + Date.now();
+                    html += `
+                        <div class="reasoning-container">
+                            <button class="reasoning-toggle" onclick="toggleReasoning('${reasoningId}')">
+                                <span id="${reasoningId}-icon">🧠</span>
+                                <span>思考过程</span>
+                            </button>
+                            <div class="reasoning-content" id="${reasoningId}">
+                                ${marked.parse(reasoning)}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 检查是否包含工具调用提示
+                const toolCallMatch = content.match(/^【调用了工具：(.+?)】\n\n/);
+                if (toolCallMatch) {
+                    const toolName = toolCallMatch[1];
+                    const toolCallBadge = `<div style="background: #e6fffa; border-left: 4px solid #38b2ac; padding: 0.5rem 1rem; margin-bottom: 0.75rem; border-radius: 4px; font-size: 14px; color: #234e52;">
+                        <strong>🔧 已调用工具：</strong>${toolName}
+                    </div>`;
+                    const markdownContent = content.replace(toolCallMatch[0], '');
+                    html += toolCallBadge + marked.parse(markdownContent);
+                } else {
+                    html += marked.parse(content);
+                }
+
+                contentDiv.innerHTML = html;
+            } else {
+                contentDiv.textContent = content;
+            }
+
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(contentDiv);
             container.appendChild(messageDiv);
-            
+
             container.scrollTop = container.scrollHeight;
+        }
+
+        // 切换思维链显示
+        function toggleReasoning(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById(id + '-icon');
+            content.classList.toggle('expanded');
+            icon.textContent = content.classList.contains('expanded') ? '🔽' : '🧠';
         }
 
         // 添加输入中动画

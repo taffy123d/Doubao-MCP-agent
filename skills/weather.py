@@ -2,18 +2,26 @@
 import httpx
 from mcp.server.fastmcp import FastMCP
 from config import settings
+try:
+    from pypinyin import lazy_pinyin
+except Exception:
+    lazy_pinyin = None
+
+def _has_chinese(s: str) -> bool:
+    return any('\u4e00' <= ch <= '\u9fff' for ch in s)
+
+def _to_pinyin(name: str) -> str:
+    if not lazy_pinyin or not _has_chinese(name):
+        return name
+    parts = lazy_pinyin(name)
+    return "".join(p.capitalize() for p in parts)
 
 def register_weather_tool(mcp: FastMCP):
     @mcp.tool()
     async def get_city_weather(city_name: str, forecast_days: int = 1) -> str:
         """查询城市天气，支持中文城市：北京/上海/广州/深圳/成都等"""
-        # 核心修复：中文城市 → 拼音映射（Open-Meteo 专用）
-        CITY_PINYIN = {
-            "北京": "Beijing", "上海": "Shanghai", "广州": "Guangzhou",
-            "深圳": "Shenzhen", "成都": "Chengdu", "重庆": "Chongqing",
-            "杭州": "Hangzhou", "南京": "Nanjing", "武汉": "Wuhan"
-        }
-        query_name = CITY_PINYIN.get(city_name, city_name)
+        # 核心修复：中文城市 → 动态拼音转换（支持全国城市）
+        query_name = _to_pinyin(city_name)
         forecast_days = max(1, min(forecast_days, 2))
 
         try:
