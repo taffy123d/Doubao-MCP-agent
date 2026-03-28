@@ -26,6 +26,8 @@
     ├── weather.py          # 天气查询技能
     ├── web_search/         # 网络搜索技能目录
     │   └── web_search.py   # DuckDuckGo搜索实现
+    |   └── SKILL.md  # skill描述
+    |   └── _init_.py   
     └── __init__.py
 ```
 
