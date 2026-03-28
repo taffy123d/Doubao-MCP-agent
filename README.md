@@ -124,6 +124,8 @@ DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3/chat/completions
 ### 方法一：完整启动（推荐）
 
 ```bash
+uv run server.py
+#或者
 python server.py
 ```
 
@@ -133,6 +135,8 @@ python server.py
 ### 方法二：命令行界面
 
 ```bash
+uv run main.py
+#或者
 python main.py
 ```
 
